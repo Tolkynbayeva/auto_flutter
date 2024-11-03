@@ -23,7 +23,7 @@ class Car {
   final String mileage;
 
   @HiveField(6)
-  final String? imagePath; 
+  final String? imagePath;
 
   Car({
     required this.brand,

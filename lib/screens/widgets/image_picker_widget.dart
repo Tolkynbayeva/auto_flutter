@@ -35,12 +35,13 @@ class ImagePickerWidget extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   SvgPicture.asset(
+                    color: Colors.white,
                     'assets/img/svg/arrow.down.to.line.compact.svg',
                   ),
                   const SizedBox(height: 20.0),
                   Text(
                     "Загрузить изображение",
-                    style: AutoTextStyles.h3,
+                    style: AutoTextStyles.h3.copyWith(color: Colors.white),
                   ),
                 ],
               ),
