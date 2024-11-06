@@ -5,6 +5,8 @@ import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:auto_flutter/style/text_style.dart';
 import 'package:auto_flutter/screens/widgets/custom_button.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as path;
 
 class EditCarForm extends StatefulWidget {
   final Car car;
@@ -36,10 +38,9 @@ class _EditCarFormState extends State<EditCarForm> {
     _modelController = TextEditingController(text: widget.car.model);
     _yearController = TextEditingController(text: widget.car.year);
     _colorController = TextEditingController(text: widget.car.color);
-    _purchaseDateController =
-        TextEditingController(text: widget.car.purchaseDate);
+    _purchaseDateController = TextEditingController(text: widget.car.purchaseDate);
     _mileageController = TextEditingController(text: widget.car.mileage);
-    _imagePath = widget.car.imagePath;
+    _imagePath = widget.car.imageFileName;
   }
 
   @override
@@ -53,15 +54,30 @@ class _EditCarFormState extends State<EditCarForm> {
     super.dispose();
   }
 
+  Future<String> saveImagePermanently(String imagePath) async {
+    final directory = await getApplicationDocumentsDirectory();
+    final fileName = path.basename(imagePath);
+    final savedPath = path.join(directory.path, fileName);
+
+    final tempImage = File(imagePath);
+    if (await tempImage.exists()) {
+      final savedImage = await tempImage.copy(savedPath);
+      print('Изображение успешно сохранено по пути: $savedPath');
+      return savedImage.path;
+    } else {
+      print('Временное изображение не найдено по пути: $imagePath');
+      return '';
+    }
+  }
+
   Future<void> _pickImage() async {
     final picker = ImagePicker();
-
-    final pickedFile =
-        await picker.pickImage(source: ImageSource.gallery, imageQuality: 50);
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 50);
 
     if (pickedFile != null) {
+      final savedPath = await saveImagePermanently(pickedFile.path);
       setState(() {
-        _imagePath = pickedFile.path;
+        _imagePath = savedPath;
       });
     }
   }
@@ -75,7 +91,7 @@ class _EditCarFormState extends State<EditCarForm> {
         color: _colorController.text,
         purchaseDate: _purchaseDateController.text,
         mileage: _mileageController.text,
-        imagePath: _imagePath,
+        imageFileName: _imagePath,
       );
 
       final carBox = Hive.box<Car>('cars');
@@ -174,20 +190,18 @@ class _EditCarFormState extends State<EditCarForm> {
               controller: _purchaseDateController,
               label: 'Дата приобретения',
               onTap: () async {
-                FocusScope.of(context).requestFocus(new FocusNode());
+                FocusScope.of(context).requestFocus(FocusNode());
                 DateTime? pickedDate = await showDatePicker(
                   context: context,
-                  initialDate: DateTime.tryParse(
-                          widget.car.purchaseDate) ?? 
-                      DateTime.now(),
+                  initialDate: DateTime.tryParse(_purchaseDateController.text) ?? DateTime.now(),
                   firstDate: DateTime(1900),
                   lastDate: DateTime.now(),
                 );
 
                 if (pickedDate != null) {
                   setState(() {
-                    _purchaseDateController.text =
-                        pickedDate.toLocal().toString().split(' ')[0];
+                    _purchaseDateController.text = 
+                        "${pickedDate.day.toString().padLeft(2, '0')}.${pickedDate.month.toString().padLeft(2, '0')}.${pickedDate.year}";
                   });
                 }
               },
@@ -246,8 +260,7 @@ class _EditCarFormState extends State<EditCarForm> {
           decoration: InputDecoration(
             border: const UnderlineInputBorder(),
             isDense: true,
-            contentPadding:
-                const EdgeInsets.symmetric(vertical: 4.0, horizontal: 10.0),
+            contentPadding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 10.0),
           ),
         ),
       ],

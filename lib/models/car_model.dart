@@ -23,7 +23,7 @@ class Car {
   final String mileage;
 
   @HiveField(6)
-  final String? imagePath;
+  final String? imageFileName;
 
   Car({
     required this.brand,
@@ -32,6 +32,6 @@ class Car {
     required this.color,
     required this.purchaseDate,
     required this.mileage,
-    this.imagePath,
+    this.imageFileName,
   });
 }

@@ -21,17 +21,9 @@ class RoadsideSolution {
 
   factory RoadsideSolution.fromJson(Map<String, dynamic> json) {
     return RoadsideSolution(
-      title: json['title'],
-      imageUrl: json['imageUrl'],
-      url: json['url'],
+      title: json['title'] ?? 'Нет заголовка',
+      imageUrl: json['imageUrl'] ?? 'assets/img/default.png',
+      url: json['url'] ?? '',
     );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'title': title,
-      'imageUrl': imageUrl,
-      'url': url,
-    };
   }
 }

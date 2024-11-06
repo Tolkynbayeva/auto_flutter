@@ -177,7 +177,7 @@ class _AddOnBoardPageState extends State<AddOnBoardPage> {
                       final recordBox = Hive.box<Record>('records');
                       final recordKey = await recordBox.add(record);
 
-                      Navigator.push(
+                      Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(
                           builder: (context) => PreviewOnBoard(

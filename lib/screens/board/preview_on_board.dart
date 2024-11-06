@@ -4,6 +4,8 @@ import 'package:auto_flutter/style/text_style.dart';
 import '../widgets/app_bar_subtitle.dart';
 import 'package:auto_flutter/models/record_model.dart';
 import 'package:hive/hive.dart';
+import 'package:auto_flutter/screens/board/edit_on_boarding.dart';
+
 
 class PreviewOnBoard extends StatelessWidget {
   final dynamic recordId;
@@ -137,6 +139,20 @@ class PreviewOnBoard extends StatelessWidget {
                 ),
                 onTap: () {
                   Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => EditOnBoardingPage(
+                        recordId: recordId,
+                        car: record.car,
+                        mileage: record.mileage,
+                        category: record.category,
+                        cost: record.cost,
+                        note: record.note,
+                        comment: record.comment,
+                      ),
+                    ),
+                  );
                 },
               ),
               Divider(height: 1, color: Colors.grey.shade300),

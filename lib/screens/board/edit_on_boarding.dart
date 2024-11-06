@@ -4,9 +4,13 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:auto_flutter/style/text_style.dart';
 import 'package:auto_flutter/screens/widgets/custom_button.dart';
 import 'package:auto_flutter/screens/board/on_board_screen.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:auto_flutter/models/car_model.dart';
+import 'package:auto_flutter/models/record_model.dart';
 
 class EditOnBoardingPage extends StatefulWidget {
-  final String? car;
+  final dynamic recordId;
+  final Car? car;
   final String? mileage;
   final String? category;
   final String? cost;
@@ -15,6 +19,7 @@ class EditOnBoardingPage extends StatefulWidget {
 
   const EditOnBoardingPage({
     Key? key,
+    required this.recordId,
     required this.car,
     required this.mileage,
     required this.category,
@@ -33,7 +38,8 @@ class _EditOnBoardingPageState extends State<EditOnBoardingPage> {
   late TextEditingController _noteController;
   late TextEditingController _commentController;
 
-  String? _selectedCar;
+  List<Car> _carList = [];
+  Car? _selectedCar;
   String? _selectedCategory;
 
   @override
@@ -46,7 +52,17 @@ class _EditOnBoardingPageState extends State<EditOnBoardingPage> {
     _commentController = TextEditingController(text: widget.comment);
 
     _selectedCar = widget.car;
-    _selectedCategory = widget.category;
+    _loadCarsFromDatabase();
+  }
+
+  Future<void> _loadCarsFromDatabase() async {
+    final carBox = Hive.box<Car>('cars');
+    setState(() {
+      _carList = carBox.values.toList();
+      if (_selectedCar != null && !_carList.contains(_selectedCar)) {
+        _carList.insert(0, _selectedCar!);
+      }
+    });
   }
 
   @override
@@ -75,16 +91,14 @@ class _EditOnBoardingPageState extends State<EditOnBoardingPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildDropdownField(
+                    _buildCarDropdownField(
                       context,
                       label: 'Автомобиль',
                       value: _selectedCar,
-                      items: [
-                        'Nissan qashqai',
-                      ],
-                      onChanged: (value) {
+                      items: _carList,
+                      onChanged: (car) {
                         setState(() {
-                          _selectedCar = value;
+                          _selectedCar = car;
                         });
                       },
                     ),
@@ -148,23 +162,61 @@ class _EditOnBoardingPageState extends State<EditOnBoardingPage> {
             const SizedBox(height: 20.0),
             CustomButton(
               text: 'Готово',
-              onPressed: () {
-                final updatedCar = _selectedCar;
-                final updatedMileage = _mileageController.text;
-                final updatedCategory = _selectedCategory;
-                final updatedCost = _costController.text;
-                final updatedNote = _noteController.text;
-                final updatedComment = _commentController.text;
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => OnBoardPage()),
+              onPressed: () async {
+                final recordBox = Hive.box<Record>('records');
+                final updatedRecord = Record(
+                  car: _selectedCar!,
+                  mileage: _mileageController.text,
+                  category: _selectedCategory ?? '',
+                  cost: _costController.text,
+                  note: _noteController.text,
+                  comment: _commentController.text,
                 );
+                await recordBox.put(widget.recordId, updatedRecord);
+
+                Navigator.pop(context);
               },
             ),
             const SizedBox(height: 30.0),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildCarDropdownField(
+    BuildContext context, {
+    required String label,
+    required Car? value,
+    required List<Car> items,
+    required ValueChanged<Car?> onChanged,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: AutoTextStyles.h4),
+        DropdownButtonFormField<Car>(
+          value: value,
+          decoration: const InputDecoration(
+            border: UnderlineInputBorder(),
+            isDense: true,
+            contentPadding:
+                EdgeInsets.symmetric(vertical: 4.0, horizontal: 10.0),
+          ),
+          dropdownColor: Colors.white,
+          icon: SvgPicture.asset('assets/img/svg/arow_dropdown_bottom.svg'),
+          items: items
+              .map((car) => DropdownMenuItem<Car>(
+                    value: car,
+                    child: Text(
+                      '${car.brand} ${car.model}',
+                      style: AutoTextStyles.b1,
+                    ),
+                  ))
+              .toList(),
+          onChanged: onChanged,
+        ),
+      ],
     );
   }
 
@@ -197,45 +249,6 @@ class _EditOnBoardingPageState extends State<EditOnBoardingPage> {
     );
   }
 
-  Widget _buildDropdownField(
-    BuildContext context, {
-    required String label,
-    required String? value,
-    required List<String> items,
-    required ValueChanged<String?> onChanged,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: AutoTextStyles.h4,
-        ),
-        DropdownButtonFormField<String>(
-          value: value,
-          decoration: const InputDecoration(
-            border: UnderlineInputBorder(),
-            isDense: true,
-            contentPadding:
-                EdgeInsets.symmetric(vertical: 4.0, horizontal: 10.0),
-          ),
-          dropdownColor: Colors.white,
-          icon: SvgPicture.asset('assets/img/svg/arow_dropdown_bottom.svg'),
-          items: items
-              .map((item) => DropdownMenuItem(
-                    value: item,
-                    child: Text(
-                      item,
-                      style: AutoTextStyles.b1,
-                    ),
-                  ))
-              .toList(),
-          onChanged: onChanged,
-        ),
-      ],
-    );
-  }
-
   Widget _buildDropdownFieldWithIcons(
     BuildContext context, {
     required String label,
@@ -247,10 +260,7 @@ class _EditOnBoardingPageState extends State<EditOnBoardingPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: AutoTextStyles.h4,
-        ),
+        Text(label, style: AutoTextStyles.h4),
         DropdownButtonFormField<String>(
           value: value,
           decoration: InputDecoration(
@@ -269,10 +279,7 @@ class _EditOnBoardingPageState extends State<EditOnBoardingPage> {
                   value: entry.key,
                   child: Row(
                     children: [
-                      SvgPicture.asset(
-                        entry.value,
-                        height: 20.0,
-                      ),
+                      SvgPicture.asset(entry.value, height: 20.0),
                       const SizedBox(width: 8),
                       Text(entry.key),
                     ],

@@ -3,16 +3,63 @@ import 'package:auto_flutter/screens/widgets/app_bar_subtitle.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:auto_flutter/style/text_style.dart';
 import 'package:auto_flutter/screens/widgets/custom_button.dart';
+import 'package:hive/hive.dart';
+import 'package:auto_flutter/models/car_model.dart';
+import 'package:auto_flutter/models/trunk_item_model.dart';
 import 'package:auto_flutter/screens/trunk/trunk_screen.dart';
 
 class EditTrunkScreen extends StatefulWidget {
-  const EditTrunkScreen({super.key});
+  final Car car;
+  final String name;
+  final String comment;
+  final int trunkItemKey;
+
+  const EditTrunkScreen({
+    super.key,
+    required this.car,
+    required this.name,
+    required this.comment,
+    required this.trunkItemKey,
+  });
 
   @override
-  State<EditTrunkScreen> createState() => _EditOnBoardingPageState();
+  State<EditTrunkScreen> createState() => _EditTrunkScreenState();
 }
 
-class _EditOnBoardingPageState extends State<EditTrunkScreen> {
+class _EditTrunkScreenState extends State<EditTrunkScreen> {
+  List<Car> _carList = [];
+  Car? _selectedCar;
+  late TextEditingController _nameController;
+  late TextEditingController _commentController;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedCar = widget.car;
+    _nameController = TextEditingController(text: widget.name);
+    _commentController = TextEditingController(text: widget.comment);
+    _loadCarsFromDatabase();
+  }
+
+  Future<void> _loadCarsFromDatabase() async {
+    final carBox = Hive.box<Car>('cars');
+    setState(() {
+      _carList = carBox.values.toList();
+      if (_carList.isEmpty) {
+        _selectedCar = null;
+      } else if (!_carList.contains(_selectedCar)) {
+        _carList.insert(0, _selectedCar!);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _commentController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -30,21 +77,26 @@ class _EditOnBoardingPageState extends State<EditTrunkScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildDropdownField(
+                    _buildCarDropdownField(
                       context,
                       label: 'Автомобиль',
-                      value: 'Nissan qashqai',
-                      items: [
-                        'Nissan qashqai',
-                      ],
+                      value: _selectedCar,
+                      items: _carList,
+                      onChanged: (car) {
+                        setState(() {
+                          _selectedCar = car;
+                        });
+                      },
                     ),
                     const SizedBox(height: 16),
                     _buildTextField(
+                      controller: _nameController,
                       label: 'Название',
                       placeholder: 'Введите текст',
                     ),
                     const SizedBox(height: 16),
                     _buildTextField(
+                      controller: _commentController,
                       label: 'Комментарий',
                       placeholder: 'Введите текст',
                     ),
@@ -55,12 +107,20 @@ class _EditOnBoardingPageState extends State<EditTrunkScreen> {
             const SizedBox(height: 20.0),
             CustomButton(
               text: 'Готово',
-              onPressed: () {
-                Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(builder: (context) => TrunkPage()),
-                  (Route<dynamic> route) => false,
+              onPressed: () async {
+                final trunkBox = Hive.box<TrunkItem>('trunkItems');
+
+                final updatedTrunkItem = TrunkItem(
+                  car: _selectedCar != null
+                      ? '${_selectedCar!.brand} ${_selectedCar!.model}'
+                      : '—',
+                  name: _nameController.text,
+                  comment: _commentController.text,
                 );
+
+                await trunkBox.put(widget.trunkItemKey, updatedTrunkItem);
+
+                Navigator.pop(context);
               },
             ),
             const SizedBox(height: 30.0),
@@ -70,7 +130,8 @@ class _EditOnBoardingPageState extends State<EditTrunkScreen> {
     );
   }
 
-    Widget _buildTextField({
+  Widget _buildTextField({
+    required TextEditingController controller,
     required String label,
     required String placeholder,
     TextInputType keyboardType = TextInputType.text,
@@ -78,11 +139,9 @@ class _EditOnBoardingPageState extends State<EditTrunkScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: AutoTextStyles.h4,
-        ),
+        Text(label, style: AutoTextStyles.h4),
         TextFormField(
+          controller: controller,
           decoration: InputDecoration(
             hintText: placeholder,
             hintStyle: AutoTextStyles.b1,
@@ -97,20 +156,18 @@ class _EditOnBoardingPageState extends State<EditTrunkScreen> {
     );
   }
 
-  Widget _buildDropdownField(
+  Widget _buildCarDropdownField(
     BuildContext context, {
     required String label,
-    required String value,
-    required List<String> items,
+    required Car? value,
+    required List<Car> items,
+    required ValueChanged<Car?> onChanged,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: AutoTextStyles.h4,
-        ),
-        DropdownButtonFormField<String>(
+        Text(label, style: AutoTextStyles.h4),
+        DropdownButtonFormField<Car>(
           value: value,
           decoration: const InputDecoration(
             border: UnderlineInputBorder(),
@@ -120,66 +177,18 @@ class _EditOnBoardingPageState extends State<EditTrunkScreen> {
           ),
           dropdownColor: Colors.white,
           icon: SvgPicture.asset('assets/img/svg/arow_dropdown_bottom.svg'),
-          items: items
-              .map((item) => DropdownMenuItem(
-                    value: item,
-                    child: Text(
-                      item,
-                      style: AutoTextStyles.b1,
-                    ),
-                  ))
-              .toList(),
-          onChanged: (value) {},
+          items: items.map((car) {
+            return DropdownMenuItem<Car>(
+              value: car,
+              child: Text(
+                '${car.brand} ${car.model}',
+                style: AutoTextStyles.b1,
+              ),
+            );
+          }).toList(),
+          onChanged: onChanged,
         ),
       ],
     );
   }
-
-  Widget _buildDropdownFieldWithIcons(
-    BuildContext context, {
-    required String label,
-    required String placeholder,
-    required Map<String, String> items,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: AutoTextStyles.h4,
-        ),
-        DropdownButtonFormField<String>(
-          decoration: InputDecoration(
-            hintText: placeholder,
-            hintStyle: AutoTextStyles.b1,
-            border: const UnderlineInputBorder(),
-            isDense: true,
-            contentPadding:
-                const EdgeInsets.symmetric(vertical: 4.0, horizontal: 10.0),
-          ),
-          dropdownColor: Colors.white,
-          icon: SvgPicture.asset('assets/img/svg/arow_dropdown_bottom.svg'),
-          items: items.entries
-              .map(
-                (entry) => DropdownMenuItem<String>(
-                  value: entry.key,
-                  child: Row(
-                    children: [
-                      SvgPicture.asset(
-                        height: 20.0,
-                        entry.value,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(entry.key),
-                    ],
-                  ),
-                ),
-              )
-              .toList(),
-          onChanged: (value) {},
-        ),
-      ],
-    );
-  }
-
 }

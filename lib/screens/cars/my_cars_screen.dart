@@ -12,6 +12,8 @@ import 'package:auto_flutter/screens/cars/add_car_screen.dart';
 import 'package:auto_flutter/screens/cars/edit_car_screen.dart';
 import 'package:auto_flutter/screens/widgets/custom_app_bar.dart';
 import 'package:auto_flutter/screens/board/on_board_screen.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as path;
 
 class MyCarsScreen extends StatefulWidget {
   const MyCarsScreen({Key? key}) : super(key: key);
@@ -31,11 +33,26 @@ class _MyCarsScreenState extends State<MyCarsScreen> {
       _selectedCarKey.value = box.keys.first;
     }
   }
+  // @override
+// void initState() {
+//   super.initState();
+//   _clearCarData(); 
+// }
+
+// Future<void> _clearCarData() async {
+//   final carBox = Hive.box<Car>('cars');
+//   await carBox.clear();
+// }
 
   @override
   void dispose() {
     _selectedCarKey.dispose();
     super.dispose();
+  }
+
+  Future<String> _getFullImagePath(String fileName) async {
+    final directory = await getApplicationDocumentsDirectory();
+    return path.join(directory.path, fileName);
   }
 
   @override
@@ -65,7 +82,6 @@ class _MyCarsScreenState extends State<MyCarsScreen> {
               ),
             );
           } else {
-            final carKeys = box.keys.toList();
             final carEntries = box.toMap().entries.toList();
 
             return ValueListenableBuilder<dynamic>(
@@ -91,7 +107,10 @@ class _MyCarsScreenState extends State<MyCarsScreen> {
                     ),
                   );
                 }
-
+                // print('Год выпуска: ${selectedCar.year}');
+                // print('Цвет: ${selectedCar.color}');
+                // print('Дата приобретения: ${selectedCar.purchaseDate}');
+                // print('Пробег (км): ${selectedCar.mileage}');
                 return SingleChildScrollView(
                   padding: const EdgeInsets.all(20.0),
                   child: Column(
@@ -165,27 +184,47 @@ class _MyCarsScreenState extends State<MyCarsScreen> {
                         ),
                       ),
                       const SizedBox(height: 20.0),
-                      if (selectedCar.imagePath?.isNotEmpty ?? false)
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(20.0),
-                          child: Image.file(
-                            File(selectedCar.imagePath!),
-                            height: 200,
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Container(
-                                height: 200,
-                                color: Colors.grey,
-                                child: Center(
-                                  child: Text(
-                                    'Ошибка загрузки изображения',
-                                    style: AutoTextStyles.h4,
+                      if (selectedCar.imageFileName?.isNotEmpty ?? false)
+                        FutureBuilder<String>(
+                          future: _getFullImagePath(selectedCar.imageFileName!),
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState ==
+                                ConnectionState.done) {
+                              if (snapshot.hasError ||
+                                  snapshot.data == null ||
+                                  !File(snapshot.data!).existsSync()) {
+                                print(
+                                    'Файл не найден или ошибка при загрузке: ${snapshot.data}');
+                                return Container(
+                                  height: 200,
+                                  color: Colors.grey,
+                                  child: Center(
+                                    child: Text(
+                                      'Изображение отсутствует',
+                                      style: AutoTextStyles.h4,
+                                    ),
                                   ),
+                                );
+                              }
+                              return ClipRRect(
+                                borderRadius: BorderRadius.circular(20.0),
+                                child: Image.file(
+                                  File(snapshot.data!),
+                                  height: 200,
+                                  width: double.infinity,
+                                  fit: BoxFit.cover,
                                 ),
                               );
-                            },
-                          ),
+                            } else {
+                              return Container(
+                                height: 200,
+                                color: Colors.grey.shade300,
+                                child: const Center(
+                                  child: CircularProgressIndicator(),
+                                ),
+                              );
+                            }
+                          },
                         )
                       else
                         Container(
@@ -219,16 +258,16 @@ class _MyCarsScreenState extends State<MyCarsScreen> {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: <Widget>[
-                          _buildDetailRow(
-                              'Год выпуска', selectedCar?.year ?? '—'),
+                          _buildDetailRow('Год выпуска',
+                              selectedCar.year?.toString() ?? '—'),
                           Divider(color: Colors.grey.shade300),
-                          _buildDetailRow('Цвет', selectedCar?.color ?? '—'),
+                          _buildDetailRow('Цвет', selectedCar.color ?? '—'),
                           Divider(color: Colors.grey.shade300),
                           _buildDetailRow('Дата приобретения',
-                              selectedCar?.purchaseDate ?? '—'),
+                              selectedCar.purchaseDate?.toString() ?? '-'),
                           Divider(color: Colors.grey.shade300),
-                          _buildDetailRow(
-                              'Пробег (км)', selectedCar?.mileage ?? '—'),
+                          _buildDetailRow('Пробег (км)',
+                              selectedCar.mileage?.toString() ?? '—'),
                           Divider(color: Colors.grey.shade300),
                         ],
                       ),
@@ -237,24 +276,20 @@ class _MyCarsScreenState extends State<MyCarsScreen> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => OnBoardPage(),
-                          ),
+                              builder: (context) => OnBoardPage()),
                         );
                       }),
                       _buildSectionButton(context, 'Багажник', () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(
-                            builder: (context) => TrunkPage(),
-                          ),
+                          MaterialPageRoute(builder: (context) => TrunkPage()),
                         );
                       }),
                       _buildSectionButton(context, 'Статистика', () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => StatisticsScreen(),
-                          ),
+                              builder: (context) => StatisticsScreen()),
                         );
                       }),
                       _buildSectionButton(context, 'Решения проблем на дороге',
@@ -262,16 +297,14 @@ class _MyCarsScreenState extends State<MyCarsScreen> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => RoadsideScreen(),
-                          ),
+                              builder: (context) => RoadsideScreen()),
                         );
                       }),
                       _buildSectionButton(context, 'Настройки', () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => SettingsScreen(),
-                          ),
+                              builder: (context) => SettingsScreen()),
                         );
                       }),
                     ],
@@ -299,27 +332,22 @@ class _MyCarsScreenState extends State<MyCarsScreen> {
             children: [
               ListTile(
                 title: Center(
-                  child: Text('Редактировать', style: AutoTextStyles.h3),
-                ),
+                    child: Text('Редактировать', style: AutoTextStyles.h3)),
                 onTap: () {
                   Navigator.pop(context);
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) =>
-                          EditCarScreen(car: car, carKey: carKey),
-                    ),
+                        builder: (context) =>
+                            EditCarScreen(car: car, carKey: carKey)),
                   );
                 },
               ),
               Divider(height: 1, color: Colors.grey.shade300),
               ListTile(
                 title: const Center(
-                  child: Text('Удалить',
-                      style: TextStyle(
-                        color: Colors.red,
-                      )),
-                ),
+                    child:
+                        Text('Удалить', style: TextStyle(color: Colors.red))),
                 onTap: () {
                   Navigator.pop(context);
                   _confirmDelete(context, carKey);
@@ -337,9 +365,8 @@ class _MyCarsScreenState extends State<MyCarsScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           contentPadding: const EdgeInsets.symmetric(vertical: 20.0),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -357,31 +384,23 @@ class _MyCarsScreenState extends State<MyCarsScreen> {
                     onPressed: () {
                       Navigator.pop(context);
                     },
-                    child: const Text(
-                      'Отмена',
-                      style: TextStyle(color: Colors.black),
-                    ),
+                    child: const Text('Отмена',
+                        style: TextStyle(color: Colors.black)),
                   ),
                   TextButton(
                     onPressed: () {
                       final carBox = Hive.box<Car>('cars');
                       carBox.delete(carKey);
-
                       Navigator.pop(context);
                       setState(() {
                         if (_selectedCarKey.value == carKey) {
-                          if (carBox.isNotEmpty) {
-                            _selectedCarKey.value = carBox.keys.first;
-                          } else {
-                            _selectedCarKey.value = null;
-                          }
+                          _selectedCarKey.value =
+                              carBox.isNotEmpty ? carBox.keys.first : null;
                         }
                       });
                     },
-                    child: const Text(
-                      'Удалить',
-                      style: TextStyle(color: Colors.red),
-                    ),
+                    child: const Text('Удалить',
+                        style: TextStyle(color: Colors.red)),
                   ),
                 ],
               ),
@@ -409,16 +428,12 @@ class _MyCarsScreenState extends State<MyCarsScreen> {
       BuildContext context, String title, VoidCallback onPressed) {
     return TextButton(
       onPressed: onPressed,
-      style: TextButton.styleFrom(
-        padding: EdgeInsets.zero,
-      ),
+      style: TextButton.styleFrom(padding: EdgeInsets.zero),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(title, style: AutoTextStyles.h2),
-          SvgPicture.asset(
-            'assets/img/svg/chevron.forward.svg',
-          ),
+          Expanded(child: Text(title, style: AutoTextStyles.h2)),
+          SvgPicture.asset('assets/img/svg/chevron.forward.svg'),
         ],
       ),
     );

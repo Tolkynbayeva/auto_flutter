@@ -1,12 +1,48 @@
-import 'package:auto_flutter/screens/trunk/preview_trunk_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+import 'package:hive/hive.dart';
+import 'package:auto_flutter/models/car_model.dart';
+import 'package:auto_flutter/models/trunk_item_model.dart';
+import 'preview_trunk_screen.dart';
+import 'package:auto_flutter/style/text_style.dart';
 import '../widgets/app_bar_subtitle.dart';
 import 'package:auto_flutter/screens/widgets/custom_button.dart';
-import 'package:auto_flutter/style/text_style.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
-class AddTrunkPage extends StatelessWidget {
+
+class AddTrunkPage extends StatefulWidget {
   const AddTrunkPage({super.key});
+
+  @override
+  State<AddTrunkPage> createState() => _AddTrunkPageState();
+}
+
+class _AddTrunkPageState extends State<AddTrunkPage> {
+  List<Car> _carList = [];
+  Car? _selectedCar;
+
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _commentController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCarsFromDatabase();
+  }
+
+  Future<void> _loadCarsFromDatabase() async {
+    final carBox = Hive.box<Car>('cars');
+    setState(() {
+      _carList = carBox.values.toList();
+      _selectedCar = _carList.isNotEmpty ? _carList.first : null;
+    });
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _commentController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,21 +61,26 @@ class AddTrunkPage extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildDropdownField(
+                    _buildCarDropdownField(
                       context,
                       label: 'Автомобиль',
-                      value: 'Nissan qashqai',
-                      items: [
-                        'Nissan qashqai',
-                      ],
+                      value: _selectedCar,
+                      items: _carList,
+                      onChanged: (car) {
+                        setState(() {
+                          _selectedCar = car;
+                        });
+                      },
                     ),
                     const SizedBox(height: 16),
                     _buildTextField(
+                      controller: _nameController,
                       label: 'Название',
                       placeholder: 'Введите текст',
                     ),
                     const SizedBox(height: 16),
                     _buildTextField(
+                      controller: _commentController,
                       label: 'Комментарий *',
                       placeholder: 'Введите текст',
                     ),
@@ -54,11 +95,29 @@ class AddTrunkPage extends StatelessWidget {
             const SizedBox(height: 20.0),
             CustomButton(
               text: 'Готово',
-              onPressed: () {
-                Navigator.pushAndRemoveUntil(
+              onPressed: () async {
+                final trunkBox = await Hive.openBox<TrunkItem>('trunkItems');
+                final newItem = TrunkItem(
+                  car: _selectedCar != null
+                      ? '${_selectedCar!.brand} ${_selectedCar!.model}'
+                      : '—',
+                  name: _nameController.text,
+                  comment: _commentController.text.isNotEmpty
+                      ? _commentController.text
+                      : '—',
+                );
+                final int newKey = await trunkBox.add(newItem);
+
+                Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(builder: (context) => PreviewTrunkPage()),
-                  (Route<dynamic> route) => false,
+                  MaterialPageRoute(
+                    builder: (context) => PreviewTrunkPage(
+                      car: newItem.car,
+                      name: newItem.name,
+                      comment: newItem.comment,
+                      trunkItemKey: newKey,
+                    ),
+                  ),
                 );
               },
             ),
@@ -70,6 +129,7 @@ class AddTrunkPage extends StatelessWidget {
   }
 
   Widget _buildTextField({
+    required TextEditingController controller,
     required String label,
     required String placeholder,
     TextInputType keyboardType = TextInputType.text,
@@ -77,11 +137,9 @@ class AddTrunkPage extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: AutoTextStyles.h4,
-        ),
+        Text(label, style: AutoTextStyles.h4),
         TextFormField(
+          controller: controller,
           decoration: InputDecoration(
             hintText: placeholder,
             hintStyle: AutoTextStyles.b1,
@@ -96,20 +154,18 @@ class AddTrunkPage extends StatelessWidget {
     );
   }
 
-  Widget _buildDropdownField(
+  Widget _buildCarDropdownField(
     BuildContext context, {
     required String label,
-    required String value,
-    required List<String> items,
+    required Car? value,
+    required List<Car> items,
+    required ValueChanged<Car?> onChanged,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: AutoTextStyles.h4,
-        ),
-        DropdownButtonFormField<String>(
+        Text(label, style: AutoTextStyles.h4),
+        DropdownButtonFormField<Car>(
           value: value,
           decoration: const InputDecoration(
             border: UnderlineInputBorder(),
@@ -119,16 +175,16 @@ class AddTrunkPage extends StatelessWidget {
           ),
           dropdownColor: Colors.white,
           icon: SvgPicture.asset('assets/img/svg/arow_dropdown_bottom.svg'),
-          items: items
-              .map((item) => DropdownMenuItem(
-                    value: item,
-                    child: Text(
-                      item,
-                      style: AutoTextStyles.b1,
-                    ),
-                  ))
-              .toList(),
-          onChanged: (value) {},
+          items: items.map((car) {
+            return DropdownMenuItem<Car>(
+              value: car,
+              child: Text(
+                '${car.brand} ${car.model}',
+                style: AutoTextStyles.b1,
+              ),
+            );
+          }).toList(),
+          onChanged: onChanged,
         ),
       ],
     );

@@ -23,7 +23,7 @@ class CarAdapter extends TypeAdapter<Car> {
       color: fields[3] as String,
       purchaseDate: fields[4] as String,
       mileage: fields[5] as String,
-      imagePath: fields[6] as String?,
+      imageFileName: fields[6] as String?,
     );
   }
 
@@ -44,7 +44,7 @@ class CarAdapter extends TypeAdapter<Car> {
       ..writeByte(5)
       ..write(obj.mileage)
       ..writeByte(6)
-      ..write(obj.imagePath);
+      ..write(obj.imageFileName);
   }
 
   @override

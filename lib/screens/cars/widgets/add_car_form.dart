@@ -1,8 +1,11 @@
+import 'package:auto_flutter/screens/cars/my_cars_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:auto_flutter/models/car_model.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as path;
 import 'package:auto_flutter/style/text_style.dart';
-import 'car_form.dart';
+import 'car_form.dart'; 
 
 class AddCarForm extends StatefulWidget {
   const AddCarForm({Key? key}) : super(key: key);
@@ -21,7 +24,21 @@ class _AddCarFormState extends State<AddCarForm> {
   final TextEditingController _purchaseDateController = TextEditingController();
   final TextEditingController _mileageController = TextEditingController();
 
-  String? _imagePath;
+  String? _imageFileName;
+  String? _appDocumentsPath; 
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeAppPath();
+  }
+
+  Future<void> _initializeAppPath() async {
+    final directory = await getApplicationDocumentsDirectory();
+    setState(() {
+      _appDocumentsPath = directory.path;
+    });
+  }
 
   @override
   void dispose() {
@@ -34,7 +51,7 @@ class _AddCarFormState extends State<AddCarForm> {
     super.dispose();
   }
 
-  void _addCar() {
+  Future<void> _addCar() async {
     if (_formKey.currentState!.validate()) {
       final newCar = Car(
         brand: _brandController.text,
@@ -43,19 +60,23 @@ class _AddCarFormState extends State<AddCarForm> {
         color: _colorController.text,
         purchaseDate: _purchaseDateController.text,
         mileage: _mileageController.text,
-        imagePath: _imagePath,
+        imageFileName: _imageFileName,
       );
 
       final carBox = Hive.box<Car>('cars');
-      final newKey = carBox.add(newCar);
+      await carBox.add(newCar);
 
       _clearFields();
 
-      Navigator.pop(context, newKey);
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const MyCarsScreen()),
+      );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text('Пожалуйста, заполните все обязательные поля'),),
+          content: Text('Пожалуйста, заполните все обязательные поля'),
+        ),
       );
     }
   }
@@ -67,11 +88,15 @@ class _AddCarFormState extends State<AddCarForm> {
     _colorController.clear();
     _purchaseDateController.clear();
     _mileageController.clear();
-    setState(() => _imagePath = null);
+    setState(() => _imageFileName = null);
   }
 
   @override
   Widget build(BuildContext context) {
+    final imagePath = _appDocumentsPath != null && _imageFileName != null
+        ? '$_appDocumentsPath/$_imageFileName'
+        : null;
+
     return Padding(
       padding: const EdgeInsets.all(20.0),
       child: Form(
@@ -89,9 +114,9 @@ class _AddCarFormState extends State<AddCarForm> {
                 colorController: _colorController,
                 purchaseDateController: _purchaseDateController,
                 mileageController: _mileageController,
-                imagePath: _imagePath,
-                onImageSelected: (path) {
-                  setState(() => _imagePath = path);
+                initialImageFileName: _imageFileName,
+                onImageSelected: (fileName) {
+                  setState(() => _imageFileName = fileName);
                 },
                 onSave: _addCar,
                 buttonText: 'Добавить автомобиль',

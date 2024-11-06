@@ -56,5 +56,16 @@
     </array>
     <key>SKStoreProductParameterITunesItemIdentifier</key>
     <string>YOUR_APP_STORE_ID</string>  
+    <key>io.flutter.embedded_views_preview</key>
+    <true/>
+    <key>NSAppTransportSecurity</key>
+    <dict>
+    <key>NSAllowsArbitraryLoads</key>
+    <true/>
+    </dict>
+    <key>NSCameraUsageDescription</key>
+    <string>Для доступа к камере через WebView</string>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>Для доступа к микрофону через WebView</string>
 </dict>
 </plist>

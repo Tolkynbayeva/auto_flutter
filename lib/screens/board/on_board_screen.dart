@@ -23,65 +23,74 @@ class _OnBoardPageState extends State<OnBoardPage> {
         title: 'Бортовой компьютер',
         subtitle: 'Мои автомобили',
       ),
-      body: ValueListenableBuilder(
-        valueListenable: Hive.box<Record>('records').listenable(),
-        builder: (context, Box<Record> box, _) {
-          if (box.isEmpty) {
-            return Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Text(
-                    'Здесь хранятся записи об операциях с автомобилем',
-                    style: AutoTextStyles.b1,
-                    textAlign: TextAlign.center,
-                  ),
-                  Expanded(
-                    child: SvgPicture.asset(
-                      'assets/img/svg/icon2.svg',
+      body: Column(
+        children: [
+          Expanded(
+            child: ValueListenableBuilder(
+              valueListenable: Hive.box<Record>('records').listenable(),
+              builder: (context, Box<Record> box, _) {
+                if (box.isEmpty) {
+                  return Padding(
+                    padding: const EdgeInsets.all(20.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Здесь хранятся записи об операциях с автомобилем',
+                          style: AutoTextStyles.b1,
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 20.0),
+                        SvgPicture.asset(
+                          'assets/img/svg/icon2.svg',
+                          height: 100.0,
+                        ),
+                      ],
                     ),
-                  ),
-                  CustomButton(
-                    text: 'Добавить запись',
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const AddOnBoardPage()),
+                  );
+                } else {
+                  return ListView.builder(
+                    itemCount: box.length,
+                    itemBuilder: (context, index) {
+                      final recordKey = box.keyAt(index);
+                      final record = box.get(recordKey)!;
+
+                      return ListTile(
+                        title: Text('Запись $recordKey'),
+                        subtitle:
+                            Text('${record.car.brand} ${record.car.model}'),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => PreviewOnBoard(
+                                recordId: recordKey,
+                                record: record,
+                              ),
+                            ),
+                          );
+                        },
                       );
                     },
-                  ),
-                  const SizedBox(height: 30.0),
-                ],
-              ),
-            );
-          } else {
-            return ListView.builder(
-              itemCount: box.length,
-              itemBuilder: (context, index) {
-                final recordKey = box.keyAt(index);
-                final record = box.get(recordKey)!;
-
-                return ListTile(
-                  title: Text('Запись $recordKey'),
-                  subtitle: Text('${record.car.brand} ${record.car.model}'),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => PreviewOnBoard(
-                          recordId: recordKey,
-                          record: record,
-                        ),
-                      ),
-                    );
-                  },
+                  );
+                }
+              },
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: CustomButton(
+              text: 'Добавить запись',
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const AddOnBoardPage()),
                 );
               },
-            );
-          }
-        },
+            ),
+          ),
+        ],
       ),
     );
   }
