@@ -38,7 +38,8 @@ class _EditCarFormState extends State<EditCarForm> {
     _modelController = TextEditingController(text: widget.car.model);
     _yearController = TextEditingController(text: widget.car.year);
     _colorController = TextEditingController(text: widget.car.color);
-    _purchaseDateController = TextEditingController(text: widget.car.purchaseDate);
+    _purchaseDateController =
+        TextEditingController(text: widget.car.purchaseDate);
     _mileageController = TextEditingController(text: widget.car.mileage);
     _imagePath = widget.car.imageFileName;
   }
@@ -63,16 +64,22 @@ class _EditCarFormState extends State<EditCarForm> {
     if (await tempImage.exists()) {
       final savedImage = await tempImage.copy(savedPath);
       print('Изображение успешно сохранено по пути: $savedPath');
-      return savedImage.path;
+      return fileName;
     } else {
       print('Временное изображение не найдено по пути: $imagePath');
       return '';
     }
   }
 
+  Future<String> _getFullImagePath(String fileName) async {
+    final directory = await getApplicationDocumentsDirectory();
+    return path.join(directory.path, fileName);
+  }
+
   Future<void> _pickImage() async {
     final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 50);
+    final pickedFile =
+        await picker.pickImage(source: ImageSource.gallery, imageQuality: 50);
 
     if (pickedFile != null) {
       final savedPath = await saveImagePermanently(pickedFile.path);
@@ -112,26 +119,43 @@ class _EditCarFormState extends State<EditCarForm> {
             GestureDetector(
               onTap: _pickImage,
               child: _imagePath != null
-                  ? ClipRRect(
-                      borderRadius: BorderRadius.circular(20.0),
-                      child: Image.file(
-                        File(_imagePath!),
-                        height: 200,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
-                            height: 200,
-                            color: Colors.grey,
-                            child: Center(
-                              child: Text(
-                                'Ошибка загрузки изображения',
-                                style: AutoTextStyles.h4,
+                  ? FutureBuilder<String>(
+                      future: _getFullImagePath(_imagePath!),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.done) {
+                          if (snapshot.hasError ||
+                              snapshot.data == null ||
+                              !File(snapshot.data!).existsSync()) {
+                            return Container(
+                              height: 200,
+                              color: Colors.grey,
+                              child: Center(
+                                child: Text(
+                                  'Ошибка загрузки изображения',
+                                  style: AutoTextStyles.h4,
+                                ),
                               ),
+                            );
+                          }
+                          return ClipRRect(
+                            borderRadius: BorderRadius.circular(20.0),
+                            child: Image.file(
+                              File(snapshot.data!),
+                              height: 200,
+                              width: double.infinity,
+                              fit: BoxFit.cover,
                             ),
                           );
-                        },
-                      ),
+                        } else {
+                          return Container(
+                            height: 200,
+                            color: Colors.grey.shade300,
+                            child: const Center(
+                              child: CircularProgressIndicator(),
+                            ),
+                          );
+                        }
+                      },
                     )
                   : Container(
                       height: 200,
@@ -193,14 +217,16 @@ class _EditCarFormState extends State<EditCarForm> {
                 FocusScope.of(context).requestFocus(FocusNode());
                 DateTime? pickedDate = await showDatePicker(
                   context: context,
-                  initialDate: DateTime.tryParse(_purchaseDateController.text) ?? DateTime.now(),
+                  initialDate:
+                      DateTime.tryParse(_purchaseDateController.text) ??
+                          DateTime.now(),
                   firstDate: DateTime(1900),
                   lastDate: DateTime.now(),
                 );
 
                 if (pickedDate != null) {
                   setState(() {
-                    _purchaseDateController.text = 
+                    _purchaseDateController.text =
                         "${pickedDate.day.toString().padLeft(2, '0')}.${pickedDate.month.toString().padLeft(2, '0')}.${pickedDate.year}";
                   });
                 }
@@ -257,10 +283,11 @@ class _EditCarFormState extends State<EditCarForm> {
           validator: validator,
           onTap: onTap,
           readOnly: readOnly,
-          decoration: InputDecoration(
-            border: const UnderlineInputBorder(),
+          decoration: const InputDecoration(
+            border: UnderlineInputBorder(),
             isDense: true,
-            contentPadding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 10.0),
+            contentPadding:
+                const EdgeInsets.symmetric(vertical: 4.0, horizontal: 10.0),
           ),
         ),
       ],

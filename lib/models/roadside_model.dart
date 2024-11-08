@@ -11,19 +11,19 @@ class RoadsideSolution {
   final String imageUrl;
 
   @HiveField(2)
-  final String url;
+  final String content;
 
   RoadsideSolution({
     required this.title,
     required this.imageUrl,
-    required this.url,
+    required this.content,
   });
 
   factory RoadsideSolution.fromJson(Map<String, dynamic> json) {
     return RoadsideSolution(
       title: json['title'] ?? 'Нет заголовка',
       imageUrl: json['imageUrl'] ?? 'assets/img/default.png',
-      url: json['url'] ?? '',
+      content: json['content'] ?? '',
     );
   }
 }

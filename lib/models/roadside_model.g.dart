@@ -19,7 +19,7 @@ class RoadsideSolutionAdapter extends TypeAdapter<RoadsideSolution> {
     return RoadsideSolution(
       title: fields[0] as String,
       imageUrl: fields[1] as String,
-      url: fields[2] as String,
+      content: fields[2] as String,
     );
   }
 
@@ -32,7 +32,7 @@ class RoadsideSolutionAdapter extends TypeAdapter<RoadsideSolution> {
       ..writeByte(1)
       ..write(obj.imageUrl)
       ..writeByte(2)
-      ..write(obj.url);
+      ..write(obj.content);
   }
 
   @override

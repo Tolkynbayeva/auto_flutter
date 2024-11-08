@@ -36,7 +36,7 @@ class _MyCarsScreenState extends State<MyCarsScreen> {
   // @override
 // void initState() {
 //   super.initState();
-//   _clearCarData(); 
+//   _clearCarData();
 // }
 
 // Future<void> _clearCarData() async {
@@ -63,11 +63,21 @@ class _MyCarsScreenState extends State<MyCarsScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.lightbulb, color: Colors.black),
-            onPressed: () {},
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => RoadsideScreen()),
+              );
+            },
           ),
           IconButton(
             icon: const Icon(Icons.settings, color: Colors.black),
-            onPressed: () {},
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => SettingsScreen()),
+              );
+            },
           ),
         ],
       ),
@@ -107,10 +117,6 @@ class _MyCarsScreenState extends State<MyCarsScreen> {
                     ),
                   );
                 }
-                // print('Год выпуска: ${selectedCar.year}');
-                // print('Цвет: ${selectedCar.color}');
-                // print('Дата приобретения: ${selectedCar.purchaseDate}');
-                // print('Пробег (км): ${selectedCar.mileage}');
                 return SingleChildScrollView(
                   padding: const EdgeInsets.all(20.0),
                   child: Column(
@@ -258,13 +264,16 @@ class _MyCarsScreenState extends State<MyCarsScreen> {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: <Widget>[
-                          _buildDetailRow('Год выпуска',
-                              selectedCar.year?.toString() ?? '—'),
+                          _buildDetailRow(
+                              'Год выпуска',
+                              selectedCar.year?.isNotEmpty == true
+                                  ? selectedCar.year
+                                  : '—'),
                           Divider(color: Colors.grey.shade300),
                           _buildDetailRow('Цвет', selectedCar.color ?? '—'),
                           Divider(color: Colors.grey.shade300),
                           _buildDetailRow('Дата приобретения',
-                              selectedCar.purchaseDate?.toString() ?? '-'),
+                              selectedCar.purchaseDate?.toString() ?? '—'),
                           Divider(color: Colors.grey.shade300),
                           _buildDetailRow('Пробег (км)',
                               selectedCar.mileage?.toString() ?? '—'),
@@ -290,21 +299,6 @@ class _MyCarsScreenState extends State<MyCarsScreen> {
                           context,
                           MaterialPageRoute(
                               builder: (context) => StatisticsScreen()),
-                        );
-                      }),
-                      _buildSectionButton(context, 'Решения проблем на дороге',
-                          () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => RoadsideScreen()),
-                        );
-                      }),
-                      _buildSectionButton(context, 'Настройки', () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => SettingsScreen()),
                         );
                       }),
                     ],
@@ -384,8 +378,10 @@ class _MyCarsScreenState extends State<MyCarsScreen> {
                     onPressed: () {
                       Navigator.pop(context);
                     },
-                    child: const Text('Отмена',
-                        style: TextStyle(color: Colors.black)),
+                    child: const Text(
+                      'Отмена',
+                      style: TextStyle(color: Colors.black),
+                    ),
                   ),
                   TextButton(
                     onPressed: () {
@@ -394,13 +390,22 @@ class _MyCarsScreenState extends State<MyCarsScreen> {
                       Navigator.pop(context);
                       setState(() {
                         if (_selectedCarKey.value == carKey) {
-                          _selectedCarKey.value =
-                              carBox.isNotEmpty ? carBox.keys.first : null;
+                          if (carBox.isNotEmpty) {
+                            _selectedCarKey.value = carBox.keys.first;
+                          } else {
+                            Navigator.of(context).pushReplacement(
+                              MaterialPageRoute(
+                                builder: (context) => const AddCarScreen(),
+                              ),
+                            );
+                          }
                         }
                       });
                     },
-                    child: const Text('Удалить',
-                        style: TextStyle(color: Colors.red)),
+                    child: const Text(
+                      'Удалить',
+                      style: TextStyle(color: Colors.red),
+                    ),
                   ),
                 ],
               ),

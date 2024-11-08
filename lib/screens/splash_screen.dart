@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:auto_flutter/screens/cars/add_car_screen.dart';
 import 'package:auto_flutter/screens/cars/my_cars_screen.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:auto_flutter/models/car_model.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -13,15 +15,20 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    _navigateToAddCarPage();
+    _navigateBasedOnCarData();
   }
 
-  void _navigateToAddCarPage() async {
+  void _navigateBasedOnCarData() async {
     await Future.delayed(const Duration(seconds: 3));
+
+    final carBox = Hive.box<Car>('cars');
+    final bool hasCars = carBox.isNotEmpty;
+
     if (mounted) {
       Navigator.of(context).pushReplacement(
-        // MaterialPageRoute(builder: (context) => const AddCarScreen()),
-        MaterialPageRoute(builder: (context) => MyCarsScreen()),
+        MaterialPageRoute(
+          builder: (context) => hasCars ? const MyCarsScreen() : const AddCarScreen(),
+        ),
       );
     }
   }
